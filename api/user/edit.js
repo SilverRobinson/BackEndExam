@@ -4,5 +4,5 @@ const api=req=>{
     
     return {body,params,query}
 }
-const route='patch /user/:id';
+const route='get /user/:id';
 module.exports={api,route}

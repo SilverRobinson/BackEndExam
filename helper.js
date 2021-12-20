@@ -3,6 +3,223 @@ const fs    = require('fs');
 const qs    = require('querystring');
 const mysql = require('mysql'); 
 //|=====================================================|//
+let Add,Edit,Delete,Get;
+//|-------------------| My Import Script |--------------|//
+const UCWord=(data,space)=>{
+    let x,str='';space=space||' ';
+    if(data!=undefined){
+    const word=data.split(space);
+      for(x in word){
+        word[x]=word[x].toLowerCase();
+          word[x]=word[x].substr(0, 1).toUpperCase()+word[x].substr(1);
+          str+=str!=''?' '+word[x]:word[x];
+      }
+    }
+    return str;
+}
+const Encrypt=({data,key})=>{
+    var sum=0;
+    key=UCWord(key).split('');
+      key.map(char=>sum+=char.charCodeAt(0));
+      sum+=key[0].charCodeAt(0)+key[key.length-1].charCodeAt(0);
+      var newData='';
+      data=data.toString().split('');
+      data.map(char=>newData+=String.fromCharCode((char.charCodeAt(0)+sum)%256));
+      return bin2hex(newData);
+}
+const Decrypt=({data,key})=>{
+    var sum=0;
+    key=UCWord(key).split('');
+      key.map(char=>sum+=char.charCodeAt(0));
+      sum+=key[0].charCodeAt(0)+key[key.length-1].charCodeAt(0);
+      var newData='';
+      data=hex2bin(data);
+      data=data.toString().split('');
+      data.map(char=>newData+=String.fromCharCode(((char.charCodeAt(0)-sum)%256)+256));
+      return newData;
+}
+const hex2bin=hexSource=> {
+      var bin = '';
+      for (var i=0;i<hexSource.length;i=i+2) {
+          bin += String.fromCharCode(hexdec(hexSource.substr(i,2)));
+      }
+      return bin;
+}
+const hexdec=hexString=> {
+      hexString = (hexString + '').replace(/[^a-f0-9]/gi, '')
+      return parseInt(hexString, 16)
+}
+const bin2hex=s=>{  
+    var v,i, f = 0, a = [];  
+    s += '';  
+    f = s.length;  
+  
+    for (i = 0; i<f; i++) {  
+      a[i] = s.charCodeAt(i).toString(16).replace(/^([\da-f])$/,"0$1");  
+    }  
+    return a.join('');
+ }
+//|-----------------------------------------------------|//
+const _token=data=>{
+    try{
+        const [token]=data.split(' ').splice(1);
+        const Break=JSON.parse(Decrypt({data:token,key:'key'}));
+        // console.log(Break)
+        return Break
+    }catch(e){
+        return {id:undefined}
+    }
+    
+}  
+const _parseValue=({type,data,encrypt})=>{
+    switch(type.toLocaleLowerCase()){
+        case 'int': case 'double': break;
+        default:
+            if(encrypt)data=Encrypt({data,key:'key'})
+            data=`"${data}"`   
+    }
+    return data
+}
+const _whereReader=(where,fields,strWhere,{op,sep})=>{
+    for(let name in where){
+        if(typeof where[name]==='string' || typeof where[name]==='number'){
+            const {type,encrypt}=fields[name]
+            where[name]=_parseValue({type,data:where[name],encrypt})
+            strWhere+=strWhere!==''?` ${sep?sep:'and'} ${name} ${op?op:'='} ${where[name]}`:` ${name} ${op?op:'='} ${where[name]}`
+        }else{
+            if(Array.isArray(where[name])){
+                strWhere+='('
+                for(let item of where[name]){
+                    strWhere+=`${_whereReader(item,fields,strWhere)}`
+                }
+                strWhere+=')'
+            }
+            if(!Array.isArray(where[name])){
+                strWhere+=_whereReader(where[name],fields,strWhere,{op:name})
+            }
+        }
+        
+    }
+    return strWhere
+}
+const _filterReader=(data,fields)=>{
+    let str='',strOrder='',strWhere='';
+    const {where,select,limit,order}=data;
+    if(where)   strWhere=`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
+    if(select)  select=JSON.stringify(select)
+    if(limit)   limit=`limit ${limit}`;
+    if(order){
+        for(name in order){
+            strOrder+=strOrder!==''?`,${name} ${order['name']}`:`${name} ${order['name']}`
+        }    
+    }
+    return where?{where,select,limit,order}:`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
+}
+const _setReader=(data,fields)=>{
+    let set=''
+    for(let name in data){
+        const {type,encrypt}=fields[name]
+        data[name]=_parseValue({type,data:data[name],encrypt})
+        set+=set!==''?`,${name}=${data[name]}`:`${name}=${data[name]}`;
+    }
+    return set
+}
+const _add=(con=>{
+    const model=_getModel();
+    return (TB,data)=>{
+        return new Promise(resolve=>{
+            const {table_name,fields}=model[TB]
+            let sql=`insert into ${table_name}`;
+            let val='',column='',row='';
+            if(Array.isArray(data)){
+                data.map(item=>{
+                    val=''
+                    for(let col in fields){
+                        if(item[col]){
+                            const {type,encrypt}=fields[col]
+                            item[col]=_parseValue({type,data:item[col],encrypt})
+                            val   +=val!==''    ?`,${item[col]}`    :item[col];
+                            column+=column!=='' ?`,${col}`          :col;
+                        }
+                    }
+                    row +=  row !==''       ?`,(${val})`        :`(${val})`;    
+                })
+            }else{
+                for(let col in fields){
+                    if(data[col]){
+                        const {type,encrypt}=fields[col]
+                        data[col]=_parseValue({type,data:data[col],encrypt})
+                        val   +=val!==''    ?`,${data[col]}`    :data[col];
+                        column+=column!=='' ?`,${col}`          :col;
+                    }
+                }
+                val=`(${val})`;
+            }
+            if(row!=='')val=row
+            sql=`${sql} (${column}) values ${val}`;
+            console.log("===============");
+            console.log("SQL:",sql);
+            console.log("===============");
+            con.query(sql,(err,result)=>{
+                if (err) throw err;
+                resolve(result)
+            })
+        })
+    }
+})
+const _edit=(con=>{
+    const model=_getModel();
+    return (TB,set,filter)=>{
+        return new Promise(resolve=>{
+            const {table_name,fields}=model[TB]
+            let sql=`update ${table_name} ${_setReader(set,fields)} ${_filterReader(filter,fields)}`;
+            console.log("===============");
+            console.log("SQL:",sql);
+            console.log("===============");
+            con.query(sql,(err,result)=>{
+                if (err) throw err;
+                resolve(result)
+            })
+        })
+    }
+})
+const _delete=(con=>{
+    const model=_getModel();
+    return (TB,filter)=>{
+        return new Promise(resolve=>{
+            const {table_name,fields}=model[TB]
+            let Filter=_filterReader(filter,fields);
+            console.log("Filter:",Filter)
+            let sql=`delete from ${table_name} ${Filter}`;
+            console.log("===============");
+            console.log("SQL:",sql);
+            console.log("===============");
+            con.query(sql,(err,result)=>{
+                if (err) throw err;
+                resolve(result)
+            })
+        })
+    }
+})
+const _get=(con=>{
+    const model=_getModel();
+    return (TB,filter)=>{
+        return new Promise(resolve=>{
+            const {table_name,fields}=model[TB]
+            let Filter=_filterReader(filter,fields);
+            let {select,where,limit,order}=Filter;
+            if(!where)where=Filter;
+            let sql=`select ${select?select:'*'} from ${table_name} ${where} ${order?order:''} ${limit?limit:''}`;
+            console.log("===============");
+            console.log("SQL:",sql);
+            console.log("===============");
+            con.query(sql,(err,result)=>{
+                if (err) throw err;
+                resolve(result)
+            })
+        })
+    }
+})
 const _getIndex=(data,item,sensitivity)=>{
     var type=typeof item,x,y,result=false,xresult,sensitivity=sensitivity||0,ctr;
     if(Array.isArray(data) && data.length>0){
@@ -55,7 +272,7 @@ const _CreateTB=({TBName,DBName,fields,data,con})=>{
         if(_getIndex(result,{['Tables_in_'+DBName.toLowerCase()]:TBName},1)===false){
             let str=`CREATE TABLE ${DBName}.${TBName}`;
             let fstr='',pstr='';
-            for(column in fields){
+            for(let column in fields){
                 const {type,allowNull,autoInc,primary}=fields[column]
                 if(fstr!=='')fstr+=','
                 fstr+=`${column} ${type} ${allowNull?'Null':'Not Null'} ${autoInc?'AUTO_INCREMENT':''}`
@@ -66,7 +283,8 @@ const _CreateTB=({TBName,DBName,fields,data,con})=>{
             }
             fstr=`(${fstr},PRIMARY KEY (${pstr}))`;
             con.query(`${str} ${fstr} ENGINE = InnoDB`);
-        };
+            Add('user',data)    
+        };    
     })
 }
 const _CreateDB=(con,DBName)=>{
@@ -78,7 +296,7 @@ const _CreateDB=(con,DBName)=>{
         }
         con.query(`use ${DBName}`)
         const model=_getModel();
-        for(TB in model){
+        for(let TB in model){
             const {table_name,fields,data}=model[TB]
             const TBName=table_name||TB
             _CreateTB({TBName,DBName,fields,data,con})
@@ -88,7 +306,14 @@ const _CreateDB=(con,DBName)=>{
 const SystemPreparation=({username,password,host},callback)=>{
     const con=_DBConnect({username,password,host},callback)
     // console.log("con:",con)
-    _CreateDB(con,'AccountDB')
+    const DBName='AccountDB';
+    //|===========| Waterline Preparation |=================|//
+    Add     =_add(con)
+    Edit    =_edit(con)
+    Delete  =_delete(con)
+    Get     =_get(con)
+    //|=====================================================|//
+    _CreateDB(con,DBName)
 }
 const _MYSQLConnect=({username,password,host})=>{
     return mysql.createConnection({
@@ -110,6 +335,7 @@ const _DBConnect=({username,password,host},callback)=>{
         } 
         callback([{status:true},{result:"Connected!"}]);
     });
+    
     return con;
 }
 const _responseHandler=(data,status)=>{
@@ -141,9 +367,7 @@ const _routeCaller=(API,data)=>{
             }
             
         }else match=false;
-        if(match){
-            return [API[route].api,params]
-        }
+        if(match)return [API[route].api,params,API[route].public]
     }
     return [()=>{return _responseHandler("Invalid Route",false)},[]]
 }
@@ -177,12 +401,13 @@ const _getAPI=()=>{
     for(let folder in API){
         const Folder=API[folder]
         for(let file in Folder){
-            let {api,route}=Folder[file];
+            let {api,route,public}=Folder[file];
             if(route){
                 let [method,path]=route.split(' ');
                 route=`${method} ${_routeFixer(path)}`
                 if(!Route[route])Route[route]={}
                 Route[route].api=api
+                Route[route].public=public
             }
         }
     }
@@ -260,20 +485,28 @@ const GenerateAPI=(()=>{
     const API=_getAPI();
     // console.log("Routes:",API)
     return (req,callback)=>{
-        const {url,method,headers}=req;
-        // console.log("headers:",headers);
+        const {url,method,headers:{authorization}}=req;
         let {pathname,query} = URL.parse(url, true);
         pathname=_routeFixer(pathname)
         const route=`${method.toLocaleLowerCase()} ${pathname.toLocaleLowerCase()}`;
-        const [func,params]=_routeCaller(API,route);
-        _middleware(req,d=>{
+        const [func,params,public]=_routeCaller(API,route);
+        // console.log("public",public);console.log("func:",func);
+        let access={id:undefined};
+        if(!public)access=_token(authorization)
+        if(!access.id)return callback(_responseHandler("Unauthorized Access",false))
+        _middleware(req,async d=>{
             req.body=d
             req.query=query
             req.params=params
-            const result=func(req);
+            req.DB={Add,Edit,Delete,Get}
+            req.Encrypt=Encrypt
+            req.Decrypt=Decrypt
+            req.UserID=access.id
+            const result=await func(req);
             callback(typeof result==='string'?result:_responseHandler(result,true));
+            // const result=func(req,()=>callback(typeof result==='string'?result:_responseHandler(result,true)));
         })        
     }
 })
 
-module.exports={Config,GenerateAPI,ServerInput,SystemPreparation};
+module.exports={Config,GenerateAPI,ServerInput,SystemPreparation,Add,Edit,Delete,Get};
