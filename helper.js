@@ -211,7 +211,7 @@ const _get=(con=>{
             if(!where)where=Filter;
             let sql=`select ${select?select:'*'} from ${table_name} ${where} ${order?order:''} ${limit?limit:''}`;
             console.log("===============");
-            console.log("SQL:",sql);
+            console.log("SQL:",sql);//
             console.log("===============");
             con.query(sql,(err,result)=>{
                 if (err) throw err;
