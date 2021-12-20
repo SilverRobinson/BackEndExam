@@ -90,7 +90,7 @@ const _whereReader=(where,fields,strWhere,{op,sep})=>{
             if(Array.isArray(where[name])){
                 strWhere+='('
                 for(let item of where[name]){
-                    strWhere+=`${_whereReader(item,fields,strWhere)}`
+                    strWhere+=`${_whereReader(item,fields,strWhere,{op:undefined})}`
                 }
                 strWhere+=')'
             }
@@ -103,26 +103,32 @@ const _whereReader=(where,fields,strWhere,{op,sep})=>{
     return strWhere
 }
 const _filterReader=(data,fields)=>{
-    let str='',strOrder='',strWhere='';
-    const {where,select,limit,order}=data;
-    if(where)   strWhere=`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
-    if(select)  select=JSON.stringify(select)
-    if(limit)   limit=`limit ${limit}`;
-    if(order){
-        for(name in order){
-            strOrder+=strOrder!==''?`,${name} ${order['name']}`:`${name} ${order['name']}`
-        }    
+    if(data){
+        let str='',strOrder='',strWhere='';
+        const {where,select,limit,order}=data;
+        if(where)   strWhere=`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
+        if(select)  select=JSON.stringify(select)
+        if(limit)   limit=`limit ${limit}`;
+        if(order){
+            for(name in order){
+                strOrder+=strOrder!==''?`,${name} ${order['name']}`:`${name} ${order['name']}`
+            }    
+        }
+        return where?{where,select,limit,order}:`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
     }
-    return where?{where,select,limit,order}:`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
+    return '';
 }
 const _setReader=(data,fields)=>{
     let set=''
+    console.log("set",fields,data);
     for(let name in data){
-        const {type,encrypt}=fields[name]
-        data[name]=_parseValue({type,data:data[name],encrypt})
-        set+=set!==''?`,${name}=${data[name]}`:`${name}=${data[name]}`;
+        if(fields[name] && data[name]){
+            const {type,encrypt}=fields[name]
+            data[name]=_parseValue({type,data:data[name],encrypt})
+            set+=set!==''?`,${name}=${data[name]}`:`${name}=${data[name]}`;
+        }
     }
-    return set
+    return `set ${set}`
 }
 const _add=(con=>{
     const model=_getModel();
@@ -172,7 +178,9 @@ const _edit=(con=>{
     return (TB,set,filter)=>{
         return new Promise(resolve=>{
             const {table_name,fields}=model[TB]
-            let sql=`update ${table_name} ${_setReader(set,fields)} ${_filterReader(filter,fields)}`;
+            let Filter=_filterReader(filter,fields);
+            let Set=_setReader(set,fields);
+            let sql=`update ${table_name} ${Set} ${Filter}`;
             console.log("===============");
             console.log("SQL:",sql);
             console.log("===============");
@@ -188,11 +196,12 @@ const _delete=(con=>{
     return (TB,filter)=>{
         return new Promise(resolve=>{
             const {table_name,fields}=model[TB]
+            console.log("filter:",filter)
             let Filter=_filterReader(filter,fields);
             console.log("Filter:",Filter)
             let sql=`delete from ${table_name} ${Filter}`;
             console.log("===============");
-            console.log("SQL:",sql);
+            console.log("SQL Delete:",sql);
             console.log("===============");
             con.query(sql,(err,result)=>{
                 if (err) throw err;
@@ -351,7 +360,7 @@ const _routeCaller=(API,data)=>{
         let [RMethod,RPath]=route.split(' ')
         let match=true;
         if(method===RMethod){
-            params=[];
+            params={};
             RPath=RPath.split('/').splice(1)
             for(let idx in path){
                 if(path[idx]!=='' && !RPath[idx]){
@@ -362,7 +371,7 @@ const _routeCaller=(API,data)=>{
                     match=false
                     break;
                 }
-                if(RPath[idx] && RPath[idx].includes(':'))params.push({[RPath[idx].replace(':','')]:path[idx]})
+                if(RPath[idx] && RPath[idx].includes(':'))params[RPath[idx].replace(':','')]=path[idx];
 
             }
             
@@ -397,17 +406,26 @@ const _getAPI=()=>{
             API[`${FolderName}`][`${data.split('.')[0]}`]=file;
         })
     })
-
+    // console.log("Original",API)
     for(let folder in API){
         const Folder=API[folder]
         for(let file in Folder){
             let {api,route,public}=Folder[file];
-            if(route){
+            if(!Array.isArray(route)){
                 let [method,path]=route.split(' ');
                 route=`${method} ${_routeFixer(path)}`
                 if(!Route[route])Route[route]={}
                 Route[route].api=api
                 Route[route].public=public
+            }
+            else{
+                route.map(data=>{
+                    let [method,path]=data.split(' ');
+                    data=`${method} ${_routeFixer(path)}`
+                    if(!Route[data])Route[data]={}
+                    Route[data].api=api
+                    Route[data].public=public
+                })
             }
         }
     }
