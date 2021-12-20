@@ -1,0 +1,223 @@
+{
+	"info": {
+		"_postman_id": "ba07da29-eb84-457b-9657-89c56d693fe9",
+		"name": "Backend Exam Test Script",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Add User",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "680f56510f271e190f60526060565c5b0f270f1e521a2220261d23200f6a",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"first_name\":\"Jay Robinson\",\r\n    \"last_name\":  \"Ong\",\r\n    \"address\":    \"Sample Rob Address\",\r\n    \"postal\":     \"Sample Rob Postal\",\r\n    \"contact\":    \"Sample Rob Contact\",\r\n    \"email\":      \"Sample Rob Email\",\r\n    \"username\":   \"Rob6\",\r\n    \"password\":   \"54321\"\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{Server}}/user",
+					"host": [
+						"{{Server}}"
+					],
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\":\"admin\",\r\n    \"password\":\"12345\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{Server}}/login",
+					"host": [
+						"{{Server}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete User",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "680f56510f271e190f60526060565c5b0f270f1e521a2220261d23200f6a",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{Server}}/user/1",
+					"host": [
+						"{{Server}}"
+					],
+					"path": [
+						"user",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete User Multiple",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "680f56510f271e190f60526060565c5b0f270f1e521a2220261d23200f6a",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"ids\":[4,5]\r\n}"
+				},
+				"url": {
+					"raw": "{{Server}}/user/",
+					"host": [
+						"{{Server}}"
+					],
+					"path": [
+						"user",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get User List",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "680f56510f271e190f60526060565c5b0f270f1e521a2220261d23200f6a",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{Server}}/user",
+					"host": [
+						"{{Server}}"
+					],
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Specific User By ID",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "680f56510f271e190f60526060565c5b0f270f1e521a2220261d23200f6a",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{Server}}/user/1",
+					"host": [
+						"{{Server}}"
+					],
+					"path": [
+						"user",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update User",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "680f56510f271e190f60526060565c5b0f270f1e521a2220261d23200f6a",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"first_name\":\"Super Robinson\",\r\n    \"Salary\":\"60,000+\",\r\n    \"Field\":\" Fields that are not declare in model will automatically disregarded when push\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{Server}}/user/3",
+					"host": [
+						"{{Server}}"
+					],
+					"path": [
+						"user",
+						"3"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

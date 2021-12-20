@@ -58,7 +58,7 @@ const bin2hex=s=>{
       a[i] = s.charCodeAt(i).toString(16).replace(/^([\da-f])$/,"0$1");  
     }  
     return a.join('');
- }
+}
 //|-----------------------------------------------------|//
 const _token=data=>{
     try{
@@ -80,7 +80,7 @@ const _parseValue=({type,data,encrypt})=>{
     }
     return data
 }
-const _whereReader=(where,fields,strWhere,{op,sep})=>{
+const _whereReader=(where,fields,strWhere,{op=undefined,sep=undefined})=>{
     for(let name in where){
         if(typeof where[name]==='string' || typeof where[name]==='number'){
             const {type,encrypt}=fields[name]
@@ -88,11 +88,16 @@ const _whereReader=(where,fields,strWhere,{op,sep})=>{
             strWhere+=strWhere!==''?` ${sep?sep:'and'} ${name} ${op?op:'='} ${where[name]}`:` ${name} ${op?op:'='} ${where[name]}`
         }else{
             if(Array.isArray(where[name])){
-                strWhere+='('
+                let strOrWhere='(';
+                const {type,encrypt}=fields[name]
                 for(let item of where[name]){
-                    strWhere+=`${_whereReader(item,fields,strWhere,{op:undefined})}`
+                    if(typeof item==='string' || typeof item==='number'){
+                        item=_parseValue({type,data:item,encrypt})
+                        strOrWhere+=strOrWhere!=='('?` ${sep?sep:'or'} ${name} ${op?op:'='} ${item}`:` ${name} ${op?op:'='} ${item}`
+                    }
                 }
-                strWhere+=')'
+                strOrWhere+=')';
+                strWhere+=strWhere!==''?` ${sep?sep:'and'} ${strOrWhere}`:` ${strOrWhere}`
             }
             if(!Array.isArray(where[name])){
                 strWhere+=_whereReader(where[name],fields,strWhere,{op:name})
@@ -104,7 +109,7 @@ const _whereReader=(where,fields,strWhere,{op,sep})=>{
 }
 const _filterReader=(data,fields)=>{
     if(data){
-        let str='',strOrder='',strWhere='';
+        let strOrder='',strWhere='';
         const {where,select,limit,order}=data;
         if(where)   strWhere=`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
         if(select)  select=JSON.stringify(select)
@@ -120,7 +125,6 @@ const _filterReader=(data,fields)=>{
 }
 const _setReader=(data,fields)=>{
     let set=''
-    console.log("set",fields,data);
     for(let name in data){
         if(fields[name] && data[name]){
             const {type,encrypt}=fields[name]
@@ -196,9 +200,7 @@ const _delete=(con=>{
     return (TB,filter)=>{
         return new Promise(resolve=>{
             const {table_name,fields}=model[TB]
-            console.log("filter:",filter)
             let Filter=_filterReader(filter,fields);
-            console.log("Filter:",Filter)
             let sql=`delete from ${table_name} ${Filter}`;
             console.log("===============");
             console.log("SQL Delete:",sql);

@@ -10,8 +10,8 @@ const api=async req=>{
         ids=ids.map(data=>Number(data))
         if(ids.includes(Number(UserID)))return {data:"You are not allowed to removed a user who is currently login"};
         const result=await Delete('user',{id:ids})
+        return {data:"Successfully Removed"}
     }
-    if(result.serverStatus===2)return {data:"Successfully Removed"}
     return "Ok" 
 }
 const route=['delete /user/:id','delete /user/'];
