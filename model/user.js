@@ -10,8 +10,7 @@ module.exports={
         email:      {   type:'VARCHAR(50)',     allowNull:false, },
         username:   {   type:'VARCHAR(25)',     allowNull:false, },
         password:   {   type:'VARCHAR(100)',    allowNull:false,        encrypt:true},
-        status:     {   type:'VARCHAR(25)',     default:"New"}
-
+        status:     {   type:'VARCHAR(25)',     value:"New"}
     },
     data:[{
         first_name  : "Admin",

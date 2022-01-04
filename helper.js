@@ -1,6 +1,5 @@
 const URL   = require('url');
 const fs    = require('fs');
-const qs    = require('querystring');
 const mysql = require('mysql'); 
 //|=====================================================|//
 let Add,Edit,Delete,Get;
@@ -290,12 +289,13 @@ const _CreateTB=({TBName,DBName,fields,data,con})=>{
             for(let column in fields){//DEFAULT 'New'
                 const {type,allowNull,autoInc,primary,value}=fields[column]
                 if(fstr!=='')fstr+=','
-                fstr+=`${column} ${type} ${allowNull?'Null':'Not Null'} ${value?`DEFAULT ${value}`:''} ${autoInc?'AUTO_INCREMENT':''}`
+                fstr+=`${column} ${type} ${allowNull?'Null':'Not Null'} ${value?`DEFAULT '${value}'`:''} ${autoInc?'AUTO_INCREMENT':''}`
                 if(primary){
                     if(pstr!=='')pstr+=',';
                     pstr+=column
                 }
             }
+            console.log(fstr)
             fstr=`(${fstr},PRIMARY KEY (${pstr}))`;
             con.query(`${str} ${fstr} ENGINE = InnoDB`);
             Add('user',data)    
@@ -318,8 +318,8 @@ const _CreateDB=(con,DBName)=>{
         }
     })
 }
-const SystemPreparation=({username,password,host},callback)=>{
-    const con=_DBConnect({username,password,host},callback)
+const SystemPreparation=({username,password,host,reset},callback)=>{
+    const con=_DBConnect({username,password,host,reset},callback)
     //|===========| Waterline Preparation |=================|//
     Add     =_add(con)
     Edit    =_edit(con)
@@ -334,7 +334,7 @@ const _MYSQLConnect=({username,password,host})=>{
         password
     });
 }
-const _DBConnect=({username,password,host},callback)=>{
+const _DBConnect=({username,password,host,reset},callback)=>{
     const con = _MYSQLConnect({username,password,host})
     con.connect(function(err) {
         if (err){
@@ -346,6 +346,7 @@ const _DBConnect=({username,password,host},callback)=>{
         } 
         callback([{status:true},{result:"Connected!"}]);
         const DBName='AccountDB';
+        if(reset===true)con.query(`Drop Database ${DBName}`);
         _CreateDB(con,DBName)
     });
     return con;
@@ -496,7 +497,8 @@ const Config=(()=>{
         username:"root",
         password:"root",
         port:5000,
-        ready:"Connecting..."
+        ready:"Connecting...",
+        reset:false
     }
     const args =  _cmd()
     config={...config,...args}

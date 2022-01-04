@@ -9,7 +9,7 @@ const JS    = require('./helper');                     //|My Personal Helper
 const http  = require('http');
 const { exit } = require('process');
 //|----------------------------------------------------------------------|//
-let {Config:{port,host,username,password,ready},GenerateAPI,ServerInput,SystemPreparation}=JS,API;
+let {Config:{port,host,username,password,ready,reset},GenerateAPI,ServerInput,SystemPreparation}=JS,API;
 //|======================| System Configuration =========================|//
 console.log('This server may ask your MySQL Credentials to fully operate. Skipping this input will lead to use the system default MYSQL Credential');  
 ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',data=>{
@@ -30,27 +30,36 @@ ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',
       console.log('')  
       API=GenerateAPI();
       console.log("Status:",ready);
-      SystemPreparation({host,username,password},result=>{
-        if(result[0].status===false){
-          console.log('')
-          console.log(result[1].result)
-          console.log('============| Error Report |=================')
-          result.splice(2).map(data=>{
-            for(let key in data)console.log(`${key}: `,data[key])
-          })
-          ready=result[1].result;
-          console.log('=============================================')
-          console.log('System is now Terminated, Please resolve the issue and start the server again');
-          exit();
+      const System=result=>{
+        {
+          if(result[0].status===false){
+            console.log('')
+            console.log(result[1].result)
+            console.log('============| Error Report |=================')
+            result.splice(2).map(data=>{
+              for(let key in data)console.log(`${key}: `,data[key])
+            })
+            ready=result[1].result;
+            console.log('=============================================')
+            console.log('System is now Terminated, Please resolve the issue and start the server again');
+            exit();
+          }
+          else{
+            ready='Ready';
+            console.log("Status:",ready)
+            console.log('=============================================')
+            console.log('System now is successfully running. Use CTRL + C to stop the server')
+          }
         }
-        else{
-          ready='Ready';
-          console.log("Status:",ready)
-          console.log('=============================================')
-          console.log('System now is successfully running. Use CTRL + C to stop the server')
-        }
-      });
-    },true);
+      }
+      if(reset){
+        ServerInput('System is about to reset to factory default setting. Press [n] if you want to cancel factory default resetting.',data=>{
+          reset=data||reset;
+          reset==''?true:false;
+          SystemPreparation({host,username,password,reset},result=>System(result));
+        },true)
+      }else SystemPreparation({host,username,password,reset},result=>System(result));
+    },!reset);
   })
 })
 //|======================================================================|//
