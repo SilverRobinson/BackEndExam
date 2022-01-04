@@ -510,10 +510,10 @@ const GenerateAPI=(()=>{
         pathname=_routeFixer(pathname)
         const route=`${method.toLocaleLowerCase()} ${pathname.toLocaleLowerCase()}`;
         const [func,params,public]=_routeCaller(API,route);
-        // console.log("public",public);console.log("func:",func);
+        // console.log("public",public,"func:",func,"route:",route);
         let access={id:undefined};
         if(!public)access=_token(authorization)
-        if(!access.id)return callback(_responseHandler("Unauthorized Access",false))
+        if(!access.id && !public)return callback(_responseHandler("Unauthorized Access",false))
         _middleware(req,async d=>{
             req.body=d
             req.query=query
@@ -529,4 +529,4 @@ const GenerateAPI=(()=>{
     }
 })
 
-module.exports={Config,GenerateAPI,ServerInput,SystemPreparation,Add,Edit,Delete,Get};
+module.exports={Config,GenerateAPI,ServerInput,SystemPreparation};
