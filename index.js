@@ -57,7 +57,6 @@ ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',
 http.createServer((req, res)=>{
   try{
     req.server=ready;
-    // req.DB={Add,Edit,Delete,Get};
     API(req,result=>{
       res.writeHead(200, {'Content-Type': 'application/json;charset=UTF-8'});
       res.write(result);
