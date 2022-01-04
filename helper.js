@@ -71,7 +71,6 @@ const _token=data=>{
     }
     
 }
-
 //|-----------------------------------------------------|//
 //|----------------| Waterline |------------------------|//
 const _add=(con=>{
@@ -288,10 +287,10 @@ const _CreateTB=({TBName,DBName,fields,data,con})=>{
         if(_getIndex(result,{['Tables_in_'+DBName.toLowerCase()]:TBName},1)===false){
             let str=`CREATE TABLE ${DBName}.${TBName}`;
             let fstr='',pstr='';
-            for(let column in fields){
-                const {type,allowNull,autoInc,primary}=fields[column]
+            for(let column in fields){//DEFAULT 'New'
+                const {type,allowNull,autoInc,primary,value}=fields[column]
                 if(fstr!=='')fstr+=','
-                fstr+=`${column} ${type} ${allowNull?'Null':'Not Null'} ${autoInc?'AUTO_INCREMENT':''}`
+                fstr+=`${column} ${type} ${allowNull?'Null':'Not Null'} ${value?`DEFAULT ${value}`:''} ${autoInc?'AUTO_INCREMENT':''}`
                 if(primary){
                     if(pstr!=='')pstr+=',';
                     pstr+=column

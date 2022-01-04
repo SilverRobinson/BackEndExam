@@ -9,17 +9,18 @@ module.exports={
         contact:    {   type:'VARCHAR(25)',     allowNull:false, },
         email:      {   type:'VARCHAR(50)',     allowNull:false, },
         username:   {   type:'VARCHAR(25)',     allowNull:false, },
-        password:   {   type:'VARCHAR(100)',    allowNull:false,        encrypt:true}
+        password:   {   type:'VARCHAR(100)',    allowNull:false,        encrypt:true},
+        status:     {   type:'VARCHAR(25)',     default:"New"}
 
     },
     data:[{
         first_name  : "Admin",
         last_name   : "User",
         address     : "Sample Address",
-        postal      : "Sample Postal",
+        postal      : "1234",
         contact     : "Sample Contact",
         email       : "Sample Email",
         username    : "admin",
-        password    : "12345"
+        password    : "12345",
     }]
 }

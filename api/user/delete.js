@@ -9,7 +9,7 @@ const api=async req=>{
     else{
         ids=ids.map(data=>Number(data))
         if(ids.includes(Number(UserID)))return {data:"You are not allowed to removed a user who is currently login"};
-        const result=await Delete('user',{id:ids})
+        const result=await Delete('user',{id:ids,status:"New"})
         return {data:"Successfully Removed"}
     }
     return "Ok" 
