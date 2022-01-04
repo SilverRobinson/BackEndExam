@@ -7,6 +7,7 @@ console.log(" ");
 //|======================================================================|//
 const JS    = require('./helper');                     //|My Personal Helper
 const http  = require('http');
+const { exit } = require('process');
 //|----------------------------------------------------------------------|//
 let {Config:{port,host,username,password,ready},GenerateAPI,ServerInput,SystemPreparation}=JS,API;
 //|======================| Admin Registration |==========================|//
@@ -31,17 +32,22 @@ ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',
       console.log("Status:",ready);
       SystemPreparation({host,username,password},result=>{
         if(result[0].status===false){
+          console.log('')
           console.log(result[1].result)
-          console.log('=============================')
-          Object.keys(result).splice(2).map(data=>{
-            console.log(result[data].data)
+          console.log('============| Error Report |=================')
+          result.splice(2).map(data=>{
+            for(let key in data)console.log(`${key}: `,data[key])
           })
           ready=result[1].result;
+          console.log('=============================================')
+          console.log('System is now Terminated, Please resolve the issue and start the server again');
+          process.exit();
         }
         else{
-          
           ready='Ready';
           console.log("Status:",ready)
+          console.log('=============================================')
+          console.log('System now is successfully running. Use CTRL + C to stop the server')
         }
       });
     },true);

@@ -70,70 +70,10 @@ const _token=data=>{
         return {id:undefined}
     }
     
-}  
-const _parseValue=({type,data,encrypt})=>{
-    switch(type.toLocaleLowerCase()){
-        case 'int': case 'double': break;
-        default:
-            if(encrypt)data=Encrypt({data,key:'key'})
-            data=`"${data}"`   
-    }
-    return data
 }
-const _whereReader=(where,fields,strWhere,{op=undefined,sep=undefined})=>{
-    for(let name in where){
-        if(typeof where[name]==='string' || typeof where[name]==='number'){
-            const {type,encrypt}=fields[name]
-            where[name]=_parseValue({type,data:where[name],encrypt})
-            strWhere+=strWhere!==''?` ${sep?sep:'and'} ${name} ${op?op:'='} ${where[name]}`:` ${name} ${op?op:'='} ${where[name]}`
-        }else{
-            if(Array.isArray(where[name])){
-                let strOrWhere='(';
-                const {type,encrypt}=fields[name]
-                for(let item of where[name]){
-                    if(typeof item==='string' || typeof item==='number'){
-                        item=_parseValue({type,data:item,encrypt})
-                        strOrWhere+=strOrWhere!=='('?` ${sep?sep:'or'} ${name} ${op?op:'='} ${item}`:` ${name} ${op?op:'='} ${item}`
-                    }
-                }
-                strOrWhere+=')';
-                strWhere+=strWhere!==''?` ${sep?sep:'and'} ${strOrWhere}`:` ${strOrWhere}`
-            }
-            if(!Array.isArray(where[name])){
-                strWhere+=_whereReader(where[name],fields,strWhere,{op:name})
-            }
-        }
-        
-    }
-    return strWhere
-}
-const _filterReader=(data,fields)=>{
-    if(data){
-        let strOrder='',strWhere='';
-        const {where,select,limit,order}=data;
-        if(where)   strWhere=`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
-        if(select)  select=JSON.stringify(select)
-        if(limit)   limit=`limit ${limit}`;
-        if(order){
-            for(name in order){
-                strOrder+=strOrder!==''?`,${name} ${order['name']}`:`${name} ${order['name']}`
-            }    
-        }
-        return where?{where,select,limit,order}:`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
-    }
-    return '';
-}
-const _setReader=(data,fields)=>{
-    let set=''
-    for(let name in data){
-        if(fields[name] && data[name]){
-            const {type,encrypt}=fields[name]
-            data[name]=_parseValue({type,data:data[name],encrypt})
-            set+=set!==''?`,${name}=${data[name]}`:`${name}=${data[name]}`;
-        }
-    }
-    return `set ${set}`
-}
+
+//|-----------------------------------------------------|//
+//|----------------| Waterline |------------------------|//
 const _add=(con=>{
     const model=_getModel();
     return (TB,data)=>{
@@ -231,6 +171,71 @@ const _get=(con=>{
         })
     }
 })
+//|-----------------------------------------------------|//
+const _parseValue=({type,data,encrypt})=>{
+    switch(type.toLocaleLowerCase()){
+        case 'int': case 'double': break;
+        default:
+            if(encrypt)data=Encrypt({data,key:'key'})
+            data=`"${data}"`   
+    }
+    return data
+}
+const _whereReader=(where,fields,strWhere,{op=undefined,sep=undefined})=>{
+    for(let name in where){
+        if(typeof where[name]==='string' || typeof where[name]==='number'){
+            const {type,encrypt}=fields[name]
+            where[name]=_parseValue({type,data:where[name],encrypt})
+            strWhere+=strWhere!==''?` ${sep?sep:'and'} ${name} ${op?op:'='} ${where[name]}`:` ${name} ${op?op:'='} ${where[name]}`
+        }else{
+            if(Array.isArray(where[name])){
+                let strOrWhere='(';
+                const {type,encrypt}=fields[name]
+                for(let item of where[name]){
+                    if(typeof item==='string' || typeof item==='number'){
+                        item=_parseValue({type,data:item,encrypt})
+                        strOrWhere+=strOrWhere!=='('?` ${sep?sep:'or'} ${name} ${op?op:'='} ${item}`:` ${name} ${op?op:'='} ${item}`
+                    }
+                }
+                strOrWhere+=')';
+                strWhere+=strWhere!==''?` ${sep?sep:'and'} ${strOrWhere}`:` ${strOrWhere}`
+            }
+            if(!Array.isArray(where[name])){
+                strWhere+=_whereReader(where[name],fields,strWhere,{op:name})
+            }
+        }
+        
+    }
+    return strWhere
+}
+const _filterReader=(data,fields)=>{
+    if(data){
+        let strOrder='',strWhere='';
+        const {where,select,limit,order}=data;
+        if(where)   strWhere=`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
+        if(select)  select=JSON.stringify(select)
+        if(limit)   limit=`limit ${limit}`;
+        if(order){
+            for(name in order){
+                strOrder+=strOrder!==''?`,${name} ${order['name']}`:`${name} ${order['name']}`
+            }    
+        }
+        return where?{where,select,limit,order}:`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
+    }
+    return '';
+}
+const _setReader=(data,fields)=>{
+    let set=''
+    for(let name in data){
+        if(fields[name] && data[name]){
+            const {type,encrypt}=fields[name]
+            data[name]=_parseValue({type,data:data[name],encrypt})
+            set+=set!==''?`,${name}=${data[name]}`:`${name}=${data[name]}`;
+        }
+    }
+    return `set ${set}`
+}
+//|-----------------------------------------------------|//
 const _getIndex=(data,item,sensitivity)=>{
     var type=typeof item,x,y,result=false,xresult,sensitivity=sensitivity||0,ctr;
     if(Array.isArray(data) && data.length>0){
@@ -316,15 +321,12 @@ const _CreateDB=(con,DBName)=>{
 }
 const SystemPreparation=({username,password,host},callback)=>{
     const con=_DBConnect({username,password,host},callback)
-    // console.log("con:",con)
-    const DBName='AccountDB';
     //|===========| Waterline Preparation |=================|//
     Add     =_add(con)
     Edit    =_edit(con)
     Delete  =_delete(con)
     Get     =_get(con)
     //|=====================================================|//
-    _CreateDB(con,DBName)
 }
 const _MYSQLConnect=({username,password,host})=>{
     return mysql.createConnection({
@@ -335,18 +337,18 @@ const _MYSQLConnect=({username,password,host})=>{
 }
 const _DBConnect=({username,password,host},callback)=>{
     const con = _MYSQLConnect({username,password,host})
-      
     con.connect(function(err) {
         if (err){
             const error=[{status:false},{result:"Connection Failed"}]
             Object.keys(err).map(data=>{
-                error.push({data:err[data]})
+                error.push({[data]:err[data]})
             })
             return  callback(error);    
         } 
         callback([{status:true},{result:"Connected!"}]);
+        const DBName='AccountDB';
+        _CreateDB(con,DBName)
     });
-    
     return con;
 }
 const _responseHandler=(data,status)=>{
