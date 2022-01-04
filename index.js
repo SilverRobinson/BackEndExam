@@ -10,7 +10,7 @@ const http  = require('http');
 const { exit } = require('process');
 //|----------------------------------------------------------------------|//
 let {Config:{port,host,username,password,ready},GenerateAPI,ServerInput,SystemPreparation}=JS,API;
-//|======================| Admin Registration |==========================|//
+//|======================| System Configuration =========================|//
 console.log('This server may ask your MySQL Credentials to fully operate. Skipping this input will lead to use the system default MYSQL Credential');  
 ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',data=>{
   host=data||host
@@ -41,7 +41,7 @@ ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',
           ready=result[1].result;
           console.log('=============================================')
           console.log('System is now Terminated, Please resolve the issue and start the server again');
-          process.exit();
+          exit();
         }
         else{
           ready='Ready';
@@ -53,8 +53,6 @@ ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',
     },true);
   })
 })
-
-
 //|======================================================================|//
 http.createServer((req, res)=>{
   try{
