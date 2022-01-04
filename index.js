@@ -49,6 +49,7 @@ ServerInput('Please enter your MYSQL Server IP Address [ default : locahost ]:',
             console.log("Status:",ready)
             console.log('=============================================')
             console.log('System now is successfully running. Use CTRL + C to stop the server')
+            console.log('')
           }
         }
       }

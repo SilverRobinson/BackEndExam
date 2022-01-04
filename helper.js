@@ -158,7 +158,7 @@ const _get=(con=>{
             let Filter=_filterReader(filter,fields);
             let {select,where,limit,order}=Filter;
             if(!where)where=Filter;
-            let sql=`select ${select?select:'*'} from ${table_name} ${where} ${order?order:''} ${limit?limit:''}`;
+            let sql=`select ${select?select:'*'} from ${table_name} ${where} ${order?`order by ${order}`:''} ${limit?limit:''}`;
             console.log("===============");
             console.log("SQL:",sql);//
             console.log("===============");
@@ -179,46 +179,52 @@ const _parseValue=({type,data,encrypt})=>{
     }
     return data
 }
-const _whereReader=(where,fields,strWhere,{op=undefined,sep=undefined})=>{
+const _whereReader=(where,fields,strWhere,{op=undefined,sep=undefined,f=undefined})=>{
     for(let name in where){
         if(typeof where[name]==='string' || typeof where[name]==='number'){
-            const {type,encrypt}=fields[name]
-            where[name]=_parseValue({type,data:where[name],encrypt})
-            strWhere+=strWhere!==''?` ${sep?sep:'and'} ${name} ${op?op:'='} ${where[name]}`:` ${name} ${op?op:'='} ${where[name]}`
+            if(fields[name]){
+                const {type,encrypt}=fields[name]
+                where[name]=_parseValue({type,data:where[name],encrypt})
+                strWhere+=strWhere!==''?` ${sep?sep:'and'} ${name} ${op?op:'='} ${where[name]}`:` ${name} ${op?op:'='} ${where[name]}`
+            }
+            else{
+                const {type,encrypt}=fields[f]
+                where[name]=_parseValue({type,data:where[name],encrypt})
+                strWhere+=` ${name} ${where[name]}`;
+            } 
         }else{
             if(Array.isArray(where[name])){
-                let strOrWhere='(';
+                let strOrWhere='';
                 const {type,encrypt}=fields[name]
                 for(let item of where[name]){
                     if(typeof item==='string' || typeof item==='number'){
                         item=_parseValue({type,data:item,encrypt})
-                        strOrWhere+=strOrWhere!=='('?` ${sep?sep:'or'} ${name} ${op?op:'='} ${item}`:` ${name} ${op?op:'='} ${item}`
+                        strOrWhere+=strOrWhere!==''?`,${item}`:`${item}`
                     }
                 }
-                strOrWhere+=')';
-                strWhere+=strWhere!==''?` ${sep?sep:'and'} ${strOrWhere}`:` ${strOrWhere}`
+                const filter=`${name} in (${strOrWhere})`;
+                strWhere+=strWhere!==''?` ${sep?sep:'and'} ${filter}`:` ${filter}`
             }
             if(!Array.isArray(where[name])){
-                strWhere+=_whereReader(where[name],fields,strWhere,{op:name})
+                const filter=_whereReader(where[name],fields,'',{op:name,f:name})
+                strWhere+=strWhere!==''?` ${sep?sep:'and'} ${name} ${filter}`:`${name} ${filter}`
             }
         }
-        
     }
     return strWhere
 }
 const _filterReader=(data,fields)=>{
     if(data){
         let strOrder='',strWhere='';
-        const {where,select,limit,order}=data;
-        if(where)   strWhere=`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
-        if(select)  select=JSON.stringify(select)
+        let {where,select,limit,order}=data;
+        if(where)   where=`where ${_whereReader(where,fields,strWhere,{op:'='})}`;
         if(limit)   limit=`limit ${limit}`;
         if(order){
-            for(name in order){
-                strOrder+=strOrder!==''?`,${name} ${order['name']}`:`${name} ${order['name']}`
+            for(let name in order){
+                strOrder+=strOrder!==''?`,${name} ${order[name]}`:`${name} ${order[name]}`
             }    
         }
-        return where?{where,select,limit,order}:`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
+        return where?{where,select,limit,order:strOrder}:`where ${_whereReader(data,fields,strWhere,{op:'='})}`;
     }
     return '';
 }
